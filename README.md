@@ -19,8 +19,15 @@ Run tutorial commands from the JupyterHub terminal. The markdown command blocks 
 ## 90-Minute Path
 
 1. [Introduction, Access, and Resource Requests](intro.md)
-2. [Hands-on Inference](inference.md)
+2. [Hands-on Inference + RAG](inference.ipynb) — open in JupyterLab
 3. [Agentic Workflows](agentic.md)
+
+The hands-on inference work runs entirely inside `inference.ipynb`: managed
+LLM, a local LLM via Ollama on the JupyterHub session GPU, and two RAG
+pipelines (a simple hand-written corpus and the full NRP documentation).
+Spawn the session with **1 × NVIDIA-A10** if you want to run the local-LLM
+comparison cells. YAML equivalents for every step are kept inside the
+notebook as collapsible reveals.
 
 ## Reference Materials
 
