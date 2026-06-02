@@ -16,18 +16,32 @@ cd ~/ai-unlocked-tutorial
 
 Run tutorial commands from the JupyterHub terminal. The markdown command blocks are intended to be copied and pasted into that terminal.
 
+## 📋 Pre-training survey — please take 2 minutes before we start
+
+<a href="images/pre-training-survey-qr.png"><img src="images/pre-training-survey-qr.png" alt="Pre-training survey QR code" width="180" align="right"></a>
+
+Scan the QR on the right (or open [`https://ucsantacruz.co1.qualtrics.com/jfe/form/SV_3wQP0UrsPXy3nMO?Q_CHL=qr`](https://ucsantacruz.co1.qualtrics.com/jfe/form/SV_3wQP0UrsPXy3nMO?Q_CHL=qr)) to take the **pre-training survey**. It's a quick set of questions about your prior Kubernetes / NRP / AI experience and what you hope to get out of the session.
+
+Comparing pre- and post-training responses is how we measure whether these materials actually move the needle, and what to keep, cut, or rework for future cohorts. The more responses we get, the better the next group's experience will be.
+
+<br clear="right">
+
 ## 90-Minute Path
 
-1. [Introduction, Access, and Resource Requests](intro.md)
-2. [Hands-on Inference + RAG](inference.ipynb) — open in JupyterLab
-3. [Agentic Workflows](agentic.md)
+The materials are numbered in the order you work through them:
 
-The hands-on inference work runs entirely inside `inference.ipynb`: managed
-LLM, a local LLM via Ollama on the JupyterHub session GPU, and two RAG
+1. [`1_intro.md`](1_intro.md) — Introduction, Access, and Resource Requests
+2. [`2_inference.ipynb`](2_inference.ipynb) — Hands-on Inference + RAG (open in JupyterLab)
+3. [`3_agentic.md`](3_agentic.md) — Agentic Workflows
+
+The hands-on inference work runs entirely inside `2_inference.ipynb`: the NRP
+managed LLM, a local LLM via Ollama on the JupyterHub session GPU, and two RAG
 pipelines (a simple hand-written corpus and the full NRP documentation).
-Spawn the session with **1 × NVIDIA-A10** if you want to run the local-LLM
-comparison cells. YAML equivalents for every step are kept inside the
-notebook as collapsible reveals.
+Everything runs **inside the notebook** — no pods to launch and no YAML to
+apply — and the managed-LLM and RAG cells work on a CPU-only session. Spawn
+the session with **1 × NVIDIA-A10** only if you also want to run the local-LLM
+comparison cells. YAML equivalents for every step are kept inside the notebook
+as collapsible reveals.
 
 ## Reference Materials
 
