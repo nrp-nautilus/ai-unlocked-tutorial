@@ -2,203 +2,141 @@
 
 **Time:** 01:05-01:30
 
-This section connects persistent Coder workspaces with CLI-based AI agents. The hands-on example uses `opencode`, while Coder provides the persistent workspace model for longer-running development work.
+This section points an agentic coding CLI at the NRP managed LLM and has it
+write a small program from scratch. The CLI we use is
+[`opencode`](https://opencode.ai), a terminal UI similar in spirit to Claude
+Code or Cursor's CLI — it plans, edits files, runs tools, and iterates. The
+key teaching point is portability: anything that speaks an OpenAI-compatible
+base URL works against NRP, so the agentic workflow you already use locally
+runs unchanged against NRP's managed inference.
 
-Run all commands from a JupyterHub terminal unless the instructor directs participants to use a local shell. Command blocks are formatted for copy/paste into that terminal.
+Run all commands from a JupyterHub terminal. Command blocks are formatted for
+copy/paste into that terminal.
 
 ## Schedule
 
 | Time | Topic | Outcome |
 | --- | --- | --- |
-| 01:05-01:10 | Coder overview | Understand persistent workspaces and why they help classroom AI workflows. |
-| 01:10-01:20 | Agent CLI workflow | Configure an OpenAI-compatible CLI agent for the NRP managed LLM. |
-| 01:20-01:30 | Discussion and Q&A | Identify implementation strategies for under-resourced classrooms. |
+| 01:05-01:10 | Setup | Install `opencode` and point it at the NRP managed LLM. |
+| 01:10-01:25 | Build a chess game | Drive `opencode` through a small but real coding task. |
+| 01:25-01:30 | Discussion and Q&A | Implementation strategies for under-resourced classrooms. |
 
-## 01:05-01:10 - Coder Overview
+## 01:05-01:10 — Setup
 
-[Coder on NRP](https://coder.nrp-nautilus.io) provides persistent development workspaces on the same shared infrastructure used by the rest of the tutorial. A Coder workspace can hold:
-
-- source code
-- package installations
-- editor state
-- logs and generated files
-- credentials configured by the user
-
-This differs from a short-lived inference pod. A Coder workspace is meant to be a repeatable development environment where an AI agent can work across multiple commands, files, and class sessions.
-
-The high-level workflow is:
-
-1. Log into Coder with institutional credentials.
-2. Create a workspace from a template.
-3. Connect with `coder ssh` or the browser IDE.
-4. Install or launch an AI coding CLI.
-5. Point the CLI at the NRP managed LLM endpoint.
-6. Review generated changes before committing or sharing them.
-
-Check whether the Coder CLI is available:
+Install `opencode` into the JupyterHub session. The installer drops the
+binary in `~/.opencode/bin/` — no `sudo` needed.
 
 ```bash
-coder version
-```
-
-If it is not installed in the JupyterHub image, install it without `sudo`:
-
-```bash
-mkdir -p ~/.local/bin
-CODER_VERSION=2.31.3
-curl -sL "https://github.com/coder/coder/releases/download/v${CODER_VERSION}/coder_${CODER_VERSION}_linux_amd64.tar.gz" -o /tmp/coder.tgz
-tar -xzf /tmp/coder.tgz -C /tmp
-mv /tmp/coder_${CODER_VERSION}_linux_amd64/coder ~/.local/bin/coder 2>/dev/null || mv /tmp/coder ~/.local/bin/coder
-chmod +x ~/.local/bin/coder
-export PATH="$HOME/.local/bin:$PATH"
-coder version
-```
-
-Log into NRP Coder. This step is interactive.
-
-```bash
-coder login coder.nrp-nautilus.io
-```
-
-For a live 90-minute session, the instructor can either use a pre-created Coder workspace or create one on the spot:
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-export TUTORIAL_USER=<username>
-export WORKSPACE=agent-demo-${TUTORIAL_USER}
-
-coder create "$WORKSPACE" -t general-template \
-  --parameter '1. Region=Any' \
-  --parameter '2. GPUs=0' \
-  --parameter '3. CPU Cores=4' \
-  --parameter '4. Memory (RAM)=8' \
-  --parameter '5. GPU Type=None' \
-  --parameter '6. Node=Any' \
-  --parameter '7. Image=gitlab-registry.nrp-nautilus.io/nrp/coder-images/ubuntu' \
-  --parameter '8. FPGAs=No' \
-  -y
-```
-
-## 01:10-01:20 - Agent CLI Workflow with opencode
-
-[`opencode`](https://opencode.ai) is the CLI agent example for this section. It can run directly in JupyterHub for a quick demo or inside a Coder workspace for persistence.
-
-Fast path in the JupyterHub terminal:
-
-```bash
-cd ~/ai-unlocked-tutorial
 curl -fsSL https://opencode.ai/install | bash
 export PATH="$HOME/.opencode/bin:$PATH"
 opencode --version
 ```
 
-Write an opencode config that reads the already configured NRP LLM token from the environment:
+Write an `opencode` config that uses the NRP managed LLM via the already
+exported `OPENAI_API_KEY`:
 
 ```bash
-python3 - <<'PY'
-import json
-import os
-from pathlib import Path
-
-path = Path.home() / ".config" / "opencode" / "opencode.json"
-path.parent.mkdir(parents=True, exist_ok=True)
-
-cfg = {
-    "$schema": "https://opencode.ai/config.json",
-    "provider": {
-        "nrp": {
-            "npm": "@ai-sdk/openai-compatible",
-            "name": "NRP LLM",
-            "options": {
-                "baseURL": os.environ.get("OPENAI_API_BASE", "https://ellm.nrp-nautilus.io/v1"),
-                "apiKey": "{env:OPENAI_API_KEY}"
-            },
-            "models": {
-                "minimax-m2": {"name": "MiniMax M2"},
-                "gpt-oss": {"name": "GPT-OSS"},
-                "qwen3": {"name": "Qwen3"},
-                "gemma": {"name": "Gemma"}
-            }
-        }
-    },
-    "model": "nrp/minimax-m2"
+mkdir -p ~/.config/opencode
+cat > ~/.config/opencode/opencode.json <<'JSON'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "nrp": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "NRP LLM",
+      "options": {
+        "baseURL": "https://ellm.nrp-nautilus.io/v1",
+        "apiKey": "{env:OPENAI_API_KEY}"
+      },
+      "models": {
+        "minimax-m2": { "name": "MiniMax M2"  },
+        "gpt-oss":    { "name": "GPT-OSS"     },
+        "qwen3":      { "name": "Qwen3 397B"  },
+        "gemma":      { "name": "Gemma 31B"   }
+      }
+    }
+  },
+  "model": "nrp/gpt-oss"
 }
-
-path.write_text(json.dumps(cfg, indent=2))
-print("wrote", path)
-PY
+JSON
 ```
 
-Create a small project and launch the agent:
+`gpt-oss` is the default model here because it tends to do well on code; you
+can switch in-session with `Ctrl+P → Switch models`.
+
+## 01:10-01:25 — Build a chess game
+
+Create a clean project directory and launch the agent:
 
 ```bash
-mkdir -p ~/ai-unlocked-agent-demo
-cd ~/ai-unlocked-agent-demo
+mkdir -p ~/chess && cd ~/chess
 opencode
 ```
 
-Inside the opencode prompt, ask for a small, reviewable task:
+Inside the `opencode` TUI, press `/` to open the prompt and paste:
 
 ```text
-Write a single-file Python command-line study planner in study_planner.py.
-It should accept a topic, number of days, and minutes per day, then print a
-simple schedule. Add a README.md with install and run instructions. Keep the
-implementation beginner-friendly and do not use external dependencies.
+Write a single-file Python program chess_game.py that lets two humans play
+chess in the terminal. Use the python-chess library. Render the board after
+every move using board.unicode(). Accept moves in SAN (e.g., "e4", "Nf3").
+When the game ends, print the result. Add a top-of-file docstring. After
+writing the file, add a requirements.txt pinning python-chess to 1.999, and
+tell me the exact commands to install and play.
 ```
 
-After opencode writes files, review before running:
+`opencode` plans, writes `chess_game.py` and `requirements.txt`, and prints
+the run instructions. Install and play:
 
 ```bash
-ls -la
-sed -n '1,200p' study_planner.py
-python3 study_planner.py --help
+pip install -r requirements.txt
+python chess_game.py
 ```
 
-Persistent path in Coder:
+> ⚠️ **Don't name the file `chess.py`** — it shadows the `python-chess`
+> package. `import chess` then re-imports your script and `chess.Board()`
+> raises `AttributeError`. Models sometimes pick `chess.py` anyway because
+> the prompt says "chess game"; if that happens, rename it. Models have also
+> been known to invent versions like `python-chess==1.10.0` that do not
+> exist on PyPI — the actual current pin is `python-chess==1.999`. The
+> prompt above pre-pins to avoid the round-trip.
 
-```bash
-coder ssh "$WORKSPACE"
-```
+Try a few moves: `e4`, `e5`, `Nf3`, `Nc6`, `Bb5`, `a6`, `Bxc6`, `dxc6`.
+Press `Ctrl+C` to quit.
 
-Then repeat the opencode install and project steps inside the workspace. If the workspace does not inherit `OPENAI_API_KEY`, set it from the class token source or mint a personal token from [https://nrp.ai/llmtoken](https://nrp.ai/llmtoken). Do not paste tokens into committed files.
+**Switch models inside `opencode`** with `Ctrl+P → Switch models`. Try the
+same prompt against `qwen3` (the largest context window) or `minimax-m2`
+(strong general-purpose reasoning) — same agent, same prompt, different
+inference backend.
+
+## 01:25-01:30 — Discussion and Q&A
 
 Key teaching points:
 
-- Agents should work in a controlled repository or workspace, not directly against production systems.
-- The user still reviews diffs, runs code, and decides what to commit.
-- Persistent workspaces make it possible to pause and resume work across class sessions.
-- OpenAI-compatible agent tools can use the NRP managed LLM endpoint without students buying separate model access.
-
-## 01:20-01:30 - Discussion and Q&A
-
-Use the final discussion to connect the mechanics to classroom implementation. For longer-term courses, instructors can move from the shared training environment to a custom JupyterHub with controlled access, custom images, shared storage, and per-user resource profiles.
-
-Suggested prompts:
-
-- What parts of this workflow should be prepared before students arrive?
-- Which resources should be shared services, and which should be per-student?
-- How should instructors set quotas so one student cannot consume the whole class allocation?
-- What should students be allowed to persist after the class ends?
-- How will students verify AI-generated code before using it?
+- Any agentic coding tool that supports an OpenAI-compatible base URL —
+  `opencode`, Crush, Continue, Cursor's custom-provider field, Claude Code via
+  `ANTHROPIC_BASE_URL` — works against NRP. You bring the workflow you
+  already use; NRP supplies the inference.
+- Agents work in a controlled directory or workspace, not against production
+  systems. The user still reviews diffs and decides what to commit.
+- Persistent workspaces (Coder, an SSH dev host, or even a checked-out repo
+  on a long-lived JupyterHub session) make it possible to pause and resume
+  agentic work across class sessions.
+- Managed LLMs are the lowest-friction classroom path — students don't buy
+  separate model access, and there's no token-handoff theater.
 
 Practical classroom strategies:
 
-- Use a prepared JupyterHub image with `kubectl`, `helm`, Python packages, and LLM environment variables already configured.
-- Pre-create namespaces, quotas, secrets, and any needed resource exceptions before class.
-- Use managed LLMs or shared services for first-time exercises.
+- Pre-create namespaces, quotas, secrets, and any needed resource exceptions
+  before class.
+- Use a prepared JupyterHub image with `kubectl`, `helm`, common Python
+  packages, and LLM environment variables already configured (this is what
+  the training JupyterHub does).
 - Reserve accelerator-heavy workflows for short, time-boxed demos.
-- Give each student a unique username convention for pod and workspace names.
+- Give each student a unique username convention for pod and workspace
+  names.
 - Include cleanup commands in every activity.
 - Prefer reviewable repository workflows over untracked generated files.
-- Pair students when accelerator capacity is limited.
-- Move to custom JupyterHubs when a course needs controlled enrollment, custom images, shared PVCs, or repeatable per-student profiles.
+- Move to custom JupyterHubs when a course needs controlled enrollment,
+  custom images, shared PVCs, or repeatable per-student profiles.
 
-## Cleanup
-
-If the workspace was created only for the live demo, delete it:
-
-```bash
-coder delete "$WORKSPACE" -y
-```
-
-If students will continue later, keep the workspace but remind them that deleting a Coder workspace also deletes its associated persistent storage.
+Reference: [client configs](https://nrp.ai/documentation/userdocs/ai/llm-managed/client-configs/).
