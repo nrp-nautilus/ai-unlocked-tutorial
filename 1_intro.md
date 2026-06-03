@@ -8,14 +8,14 @@ Run all commands from a JupyterHub terminal. Command blocks are formatted for co
 
 ## Schedule
 
-| Time | Topic | Outcome |
-| --- | --- | --- |
-| 00:00-00:05 | NRP overview | Understand where JupyterHub, Kubernetes, GPUs, and Qualcomm Cloud AI 100 SoCs fit. |
-| 00:05-00:15 | Access with CILogon | Log into the training JupyterHub and open the AI Unlocked tutorial workspace. |
-| 00:15-00:25 | Resource portal | Inspect available hardware, quotas, and allocation paths. |
-| 00:25-00:35 | Kubernetes resource requests | Launch a small GPU request on the workshop reservation and clean it up. |
+| Topic | Outcome |
+| --- | --- |
+| NRP overview | Understand where JupyterHub, Kubernetes, GPUs, and Qualcomm Cloud AI 100 SoCs fit. |
+| Access with CILogon | Log into the training JupyterHub and open the AI Unlocked tutorial workspace. |
+| Resource portal | Inspect available hardware, quotas, and allocation paths. |
+| Kubernetes resource requests | Launch a small GPU request on the workshop reservation and clean it up. |
 
-## 00:00-00:05 - NRP Overview
+## NRP Overview
 
 The National Research Platform (NRP) is a shared national cyberinfrastructure built on the Nautilus Kubernetes cluster. It provides hundreds of nodes, many NVIDIA GPU types, Qualcomm Cloud AI 100 Ultra devices, shared storage, and services such as JupyterHub, GitLab, Coder, and S3.
 
@@ -27,6 +27,51 @@ The core mental model is:
 4. **YAML manifests** describe the compute resources a workload needs.
 5. **Device plugins** expose accelerators such as NVIDIA GPUs and Qualcomm Cloud AI 100 SoCs to Kubernetes.
 
+### Capabilities
+
+- **Storage:** CephFS, CVMFS, S3
+- **Monitoring:** PerfSONAR, traceroute, Prometheus
+- **Compute and data tools:** JupyterHub, WebODM, GitLab, Nextcloud, Overleaf
+- **Collaboration tools:** Jitsi, EtherPad, HedgeDoc, Syncthing
+
+### Scale
+
+- **500+ nodes**
+- **1500+ GPUs**
+- **50+ FPGAs**
+
+<style>
+.image-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.image-row img {
+  width: calc(50% - 8px);
+  max-width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .image-row {
+    flex-wrap: wrap;
+  }
+
+  .image-row img {
+    width: 100%;
+  }
+}
+</style>
+
+<div class="image-row">
+  <img src="images/dash.png" alt="Dashboard image">
+  <img src="images/kcluster.png" alt="Kubernetes cluster image">
+</div>
+
 Useful links for the live session:
 
 - [Launch AI Unlocked Tutorial Workspace](https://training.nrp-nautilus.io/hub/user-redirect/git-pull?repo=https%3A%2F%2Fgithub.com%2Fnrp-nautilus%2Fai-unlocked-tutorial&branch=main&urlpath=lab%2Ftree%2Fai-unlocked-tutorial%2F)
@@ -34,7 +79,64 @@ Useful links for the live session:
 - [NRP namespaces view](https://nrp.ai/viz/namespaces/)
 - [NRP support and Matrix chat](https://nrp.ai/contact/)
 
-## 00:05-00:15 - Login and Terminal Setup
+## Kubernetes basics (quick intro)
+Kubernetes is a system for running applications on a cluster by managing **workloads** (things you want to run) and keeping them in the desired state.
+
+Most interactions with Kubernetes involve creating and updating **resources** (objects) described in **YAML**.
+- A YAML “manifest” declares the *desired state* (what you want running)
+- Kubernetes works continuously to make the cluster match that desired state
+
+Typical workflow:
+1. Write or edit a YAML manifest
+2. Apply it to the cluster (e.g., `kubectl apply -f ...`)
+3. Check status and troubleshoot (pods, logs, events)
+
+### Kubernetes workloads
+Workloads are the resource types you use to run containers on the cluster.
+
+- **Pod**: the basic unit where your application runs (one or more containers together)
+- **Job**: runs work to completion (batch or one-off tasks)
+- **Deployment**: manages long-running services and keeps them available (including rolling updates)
+
+Rule of thumb:
+- Use a **Job** when the work should finish.
+- Use a **Deployment** when the work should keep running.
+  
+
+### Keep in mind
+- pods are **ephemeral**. Once a pod is terminated all data is deleted.
+- **Persistent volume claims** (PVCs) are used to claim long term storage.
+- Kubernetes nodes are typically not accessed directly by users. Instead, users define their workloads in **YAML files** and submit them to the cluster using kubectl, which can be run from any machine that has it installed, such as a local computer.
+
+
+### Docker and containers
+Docker is a tool for building and running **containers**.
+
+A container image packages:
+- your application code
+- libraries and dependencies
+- enough operating-system files to run consistently
+
+This makes the environment portable: the same image can run on your laptop, a VM, or on a Kubernetes cluster.
+### Why Docker matters for Kubernetes
+Kubernetes runs **container images**. It does not build them.
+
+In practice:
+- You build a container image (with Docker or another tool)
+- Kubernetes pulls that image and runs it as part of your workload
+
+### Container registries
+A **container registry** stores and distributes container images.
+
+- Public example: Docker Hub
+- Organizations often use private registries for internal images
+
+NRP note:
+- NRP GitLab provides a container registry (public or private depending on repo settings)
+- You can push local images to GitLab’s registry, or build/publish images using GitLab CI/CD
+
+
+## Login and Terminal Setup
 
 Open the tutorial workspace link and sign in through CILogon. The training JupyterHub is the recommended path for this workshop because `kubectl`, `helm`, and kubeconfig are already wired up in the terminal.
 
@@ -64,7 +166,7 @@ Set a username variable for this session. Use a lower-case NRP, GitHub, or insti
 export TUTORIAL_USER=<username>
 ```
 
-## 00:15-00:25 - Resource Portal Walkthrough
+## Resource Portal Walkthrough
 
 Open the [NRP live resource view](https://nrp.ai/viz/resources/) and look for:
 
@@ -157,7 +259,7 @@ affinity:
 
 The toleration allows the pod onto tainted reservation nodes. The affinity asks the scheduler to prefer the reserved pool.
 
-## 00:25-00:35 - Hands-on Resource Request
+## Hands-on Resource Request
 
 Open `yamls/gpu-pod.yaml`. The important section is the accelerator request:
 
